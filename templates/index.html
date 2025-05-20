@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Meeting Summarizer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body, html {
+            height: 100%;
+        }
+
+        textarea {
+            height: 300px;
+            resize: vertical;
+        }
+    </style>
+</head>
+
+<body class="d-flex align-items-center justify-content-center bg-light">
+    <div class="container text-center">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <h1 class="mb-4">Meeting Summarizer</h1>
+                <form id="summaryForm">
+                    <div class="mb-3">
+                        <textarea class="form-control" id="transcriptInput" placeholder="Paste your meeting transcript here..." required></textarea>
+                    </div>
+                    <button type="submit" id="submitBtn" class="btn btn-primary w-100">
+                        <span id="submitSpinner" class="spinner-border spinner-border-sm me-2 d-none" role="status"
+                              aria-hidden="true"></span>
+                        <span id="submitText">Generate Summary</span>
+                    </button>
+                </form>
+                <div id="alertContainer" class="mt-4"></div>
+                <div id="summaryResult" class="mt-3 text-start d-none">
+                    <h5>Summary:</h5>
+                    <div class="alert alert-success" id="summaryContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('summaryForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const transcript = document.getElementById('transcriptInput').value.trim();
+            const submitBtn = document.getElementById('submitBtn');
+            const submitSpinner = document.getElementById('submitSpinner');
+            const submitText = document.getElementById('submitText');
+            const alertContainer = document.getElementById('alertContainer');
+            const summaryBox = document.getElementById('summaryResult');
+            const summaryContent = document.getElementById('summaryContent');
+
+            alertContainer.innerHTML = '';
+            summaryBox.classList.add('d-none');
+            submitBtn.disabled = true;
+            submitSpinner.classList.remove('d-none');
+            submitText.textContent = 'Summarizing...';
+
+            try {
+                const response = await fetch('/summarize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ transcript })
+                });
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    summaryContent.textContent = result.data.summary;
+                    summaryBox.classList.remove('d-none');
+                } else {
+                    const alert = document.createElement('div');
+                    alert.className = 'alert alert-danger alert-dismissible fade show';
+                    alert.role = 'alert';
+                    alert.innerHTML = `
+                        ${result.message} (Error Code: ${result.error_code})
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    `;
+                    alertContainer.appendChild(alert);
+                }
+            } catch (error) {
+                const alert = document.createElement('div');
+                alert.className = 'alert alert-danger alert-dismissible fade show';
+                alert.role = 'alert';
+                alert.innerHTML = `
+                    An unexpected error occurred. Please try again.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                alertContainer.appendChild(alert);
+            } finally {
+                submitBtn.disabled = false;
+                submitSpinner.classList.add('d-none');
+                submitText.textContent = 'Generate Summary';
+            }
+        });
+    </script>
+</body>
+
+</html>
